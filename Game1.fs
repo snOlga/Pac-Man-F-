@@ -16,6 +16,24 @@ type Game1 () as x =
     let mutable rect2Position = Vector2(100.0f, 100.0f)
     let mutable rect3Position = Vector2(100.0f, 100.0f)
 
+    let movePlayer () =
+        let keyboardState = Keyboard.GetState()
+        let speed = 1f
+        rect1Position <- rect1Position + 
+        match keyboardState.GetPressedKeys() with
+        | [||] -> Vector2(0.0f, 0.0f)
+        | pressedKeys ->
+            match Array.head pressedKeys with
+            | Keys.Left -> Vector2(-speed, 0.0f)
+            | Keys.Right -> Vector2(speed, 0.0f)
+            | Keys.Up -> Vector2(0.0f, -speed)
+            | Keys.Down -> Vector2(0.0f, speed)
+            | _ -> Vector2(0.0f, 0.0f)
+    
+    let moveNPC (npcPosition) =
+        let rand = Random()
+        npcPosition + Vector2((float32) (rand.Next(-1, 2)), (float32) (rand.Next(-1, 2)))
+
     override x.Initialize() =
         whiteTexture <- new Texture2D(x.GraphicsDevice, 1, 1)
         whiteTexture.SetData([| Color.White |])
@@ -28,22 +46,9 @@ type Game1 () as x =
         ()
 
     override this.Update(gameTime) =
-        let keyboardState = Keyboard.GetState()
-
-        let speed = 200.0f * float32 gameTime.ElapsedGameTime.TotalSeconds
-
-        if keyboardState.IsKeyDown(Keys.Left) then
-            rect1Position <- rect1Position + Vector2(-speed, 0.0f)
-        if keyboardState.IsKeyDown(Keys.Right) then
-            rect1Position <- rect1Position + Vector2(speed, 0.0f)
-        if keyboardState.IsKeyDown(Keys.Up) then
-            rect1Position <- rect1Position + Vector2(0.0f, -speed)
-        if keyboardState.IsKeyDown(Keys.Down) then
-            rect1Position <- rect1Position + Vector2(0.0f, speed)
-        
-        let rand = Random()
-
-        //rect2Position <- rect2Position + Vector2((float32) rand.Next(0, 200), (float32) rand.NextDouble(0.0f, 200.0f))
+        movePlayer()
+        rect2Position <- (moveNPC rect2Position)
+        rect3Position <- moveNPC rect3Position
 
         base.Update(gameTime)
 
@@ -60,13 +65,13 @@ type Game1 () as x =
 
         spriteBatch.Draw(
             whiteTexture,
-            Rectangle(300, 100, 150, 100),
+            Rectangle(int rect2Position.X, int rect2Position.Y, 150, 100),
             Color.Green 
         )
 
         spriteBatch.Draw(
             whiteTexture,
-            Rectangle(500, 100, 150, 100),
+            Rectangle(int rect3Position.X, int rect3Position.Y, 150, 100),
             Color.Blue 
         )
 
