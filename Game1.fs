@@ -20,6 +20,7 @@ type Game1() as x =
     let mutable rect3Position = Vector2(100.0f, 100.0f)
 
     let environment = mazeMatrix
+    let wallCode = Maze.WALL
     let speed = 10
 
     let isWall (position: MovementVector) =
@@ -30,7 +31,7 @@ type Game1() as x =
            && y >= 0
            && y < environment.Length
            && x < environment.[y].Length
-           && environment.[y].[x] <> 1 then
+           && environment.[y].[x] <> wallCode then
             // environment.[y].[x] = 1
             false
         else
@@ -87,9 +88,24 @@ type Game1() as x =
 
         spriteBatch.Begin()
 
+        let drawMaze = 
+            for index_y in [0..mazeMatrix.Length-1] do
+                for index_x in [0..mazeMatrix[index_y].Length-1] do
+                    match mazeMatrix.[index_y].[index_x] with
+                    | code when code = wallCode -> spriteBatch.Draw(
+                            whiteTexture,
+                            Rectangle(index_x * speed, index_y * speed, 5, 5),
+                            Color.Black
+                        )
+                    | _ -> spriteBatch.Draw(
+                            whiteTexture,
+                            Rectangle(index_x * speed, index_y * speed, 1, 1),
+                            Color.White
+                        )
+
         spriteBatch.Draw(
             whiteTexture,
-            Rectangle(rect1Position.X, rect1Position.Y, 150, 100),
+            Rectangle(rect1Position.X, rect1Position.Y, 5, 5),
             Color.Red
         )
 
