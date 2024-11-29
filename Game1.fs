@@ -8,11 +8,11 @@ open Maze
 
 type MovementVector = { X:int; Y:int }
 
-type Game1() as x =
+type Game1() as thisPacMan =
     inherit Game()
 
-    do x.Content.RootDirectory <- "Content"
-    let graphics = new GraphicsDeviceManager(x)
+    do thisPacMan.Content.RootDirectory <- "Content"
+    let graphics = new GraphicsDeviceManager(thisPacMan)
     let mutable spriteBatch = Unchecked.defaultof<SpriteBatch>
     let mutable whiteTexture = Unchecked.defaultof<Texture2D>
     let mutable rect1Position = {X = 0; Y = 0}
@@ -21,42 +21,40 @@ type Game1() as x =
 
     let environment = mazeMatrix
     let wallCode = Maze.WALL
-    let speed = 10
+    let speed = 20
+    let playerSpeed = 1
 
     let isWall (position: MovementVector) =
-        let x = (position.X) / speed
-        let y = (position.Y) / speed
+        let xCeiling = int (Math.Ceiling((float position.X) / (float speed)))
+        let yCeiling = int (Math.Ceiling((float position.Y) / (float speed)))
+        let xFloor = int (Math.Floor((float position.X) / (float speed)))
+        let yFloor = int (Math.Floor((float position.Y) / (float speed)))
 
-        if x >= 0
-           && y >= 0
-           && y < environment.Length
-           && x < environment.[y].Length
-           && environment.[y].[x] <> wallCode then
-            // environment.[y].[x] = 1
-            false
-        else
-            true
+        xCeiling < 0 || yCeiling < 0 || xFloor < 0 || yFloor < 0
+        || yCeiling >= environment.Length || xCeiling >= environment.[yCeiling].Length 
+        || yFloor >= environment.Length || xFloor >= environment.[yFloor].Length 
+        || environment.[yCeiling].[xCeiling] = wallCode
+        || environment.[yFloor].[xFloor] = wallCode
+        || environment.[yFloor].[xCeiling] = wallCode
+        || environment.[yCeiling].[xFloor] = wallCode
 
     let movePlayer () =
         let keyboardState = Keyboard.GetState()
+
+        let goLeft = {rect1Position with X = rect1Position.X-playerSpeed}
+        let goRight = {rect1Position with X = rect1Position.X+playerSpeed}
+        let goUp = {rect1Position with Y = rect1Position.Y-playerSpeed}
+        let goDown = {rect1Position with Y = rect1Position.Y+playerSpeed}
 
         rect1Position <-
             match keyboardState.GetPressedKeys() with
               | [||] -> rect1Position
               | pressedKeys ->
                   match Array.head pressedKeys with
-                  | Keys.Left 
-                    when not (isWall ({rect1Position with X = rect1Position.X-speed})) 
-                    -> {rect1Position with X = rect1Position.X-speed}
-                  | Keys.Right 
-                    when not (isWall ({rect1Position with X = rect1Position.X+speed})) 
-                    -> {rect1Position with X = rect1Position.X+speed}
-                  | Keys.Up 
-                    when not (isWall ({rect1Position with Y = rect1Position.Y-speed})) 
-                    -> {rect1Position with Y = rect1Position.Y-speed}
-                  | Keys.Down 
-                    when not (isWall ({rect1Position with Y = rect1Position.Y+speed})) 
-                    -> {rect1Position with Y = rect1Position.Y+speed}
+                  | Keys.Left when not (isWall (goLeft)) -> goLeft
+                  | Keys.Right when not (isWall (goRight)) -> goRight
+                  | Keys.Up when not (isWall (goUp)) -> goUp
+                  | Keys.Down when not (isWall (goDown)) -> goDown
                   | _ -> rect1Position
 
     let moveNPC (npcPosition) =
@@ -65,26 +63,26 @@ type Game1() as x =
         npcPosition
         + Vector2((float32) (rand.Next(-1, 2)), (float32) (rand.Next(-1, 2)))
 
-    override x.Initialize() =
-        whiteTexture <- new Texture2D(x.GraphicsDevice, 1, 1)
+    override thisPacMan.Initialize() =
+        whiteTexture <- new Texture2D(thisPacMan.GraphicsDevice, 1, 1)
         whiteTexture.SetData([| Color.White |])
 
-        spriteBatch <- new SpriteBatch(x.GraphicsDevice)
+        spriteBatch <- new SpriteBatch(thisPacMan.GraphicsDevice)
         base.Initialize()
 
-    override this.LoadContent() =
+    override thisPacMan.LoadContent() =
         // If needed, load content here
         ()
 
-    override this.Update(gameTime) =
+    override thisPacMan.Update(gameTime) =
         movePlayer ()
         rect2Position <- (moveNPC rect2Position)
         rect3Position <- moveNPC rect3Position
 
-        ``base``.Update(gameTime)
+        base.Update(gameTime)
 
-    override this.Draw(gameTime) =
-        x.GraphicsDevice.Clear Color.CornflowerBlue
+    override thisPacMan.Draw(gameTime) =
+        thisPacMan.GraphicsDevice.Clear Color.CornflowerBlue
 
         spriteBatch.Begin()
 
@@ -94,33 +92,21 @@ type Game1() as x =
                     match mazeMatrix.[index_y].[index_x] with
                     | code when code = wallCode -> spriteBatch.Draw(
                             whiteTexture,
-                            Rectangle(index_x * speed, index_y * speed, 5, 5),
+                            Rectangle(index_x * speed, index_y * speed, speed, speed),
                             Color.Black
                         )
                     | _ -> spriteBatch.Draw(
                             whiteTexture,
-                            Rectangle(index_x * speed, index_y * speed, 1, 1),
-                            Color.White
+                            Rectangle(index_x * speed, index_y * speed, speed, speed),
+                            Color.Gray
                         )
 
         spriteBatch.Draw(
             whiteTexture,
-            Rectangle(rect1Position.X, rect1Position.Y, 5, 5),
-            Color.Red
+            Rectangle(rect1Position.X, rect1Position.Y, speed, speed),
+            Color.Yellow
         )
-
-        // spriteBatch.Draw(
-        //     whiteTexture,
-        //     Rectangle(int rect2Position.X, int rect2Position.Y, 150, 100),
-        //     Color.Green 
-        // )
-
-        // spriteBatch.Draw(
-        //     whiteTexture,
-        //     Rectangle(int rect3Position.X, int rect3Position.Y, 150, 100),
-        //     Color.Blue 
-        // )
 
         spriteBatch.End()
 
-        ``base``.Draw(gameTime)
+        base.Draw(gameTime)
