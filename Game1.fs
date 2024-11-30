@@ -28,14 +28,14 @@ type Game1() as thisPacMan =
 
     let environment = mazeMatrix
     let wallCode = Maze.WALL
-    let speed = 20
-    let playerSpeed = 1
+    let blockSize = 20
+    let speed = 1
 
     let isWall (position: MovementVector) =
-        let xCeiling = int (Math.Ceiling((float position.X) / (float speed)))
-        let yCeiling = int (Math.Ceiling((float position.Y) / (float speed)))
-        let xFloor = int (Math.Floor((float position.X) / (float speed)))
-        let yFloor = int (Math.Floor((float position.Y) / (float speed)))
+        let xCeiling = int (Math.Ceiling((float position.X) / (float blockSize)))
+        let yCeiling = int (Math.Ceiling((float position.Y) / (float blockSize)))
+        let xFloor = int (Math.Floor((float position.X) / (float blockSize)))
+        let yFloor = int (Math.Floor((float position.Y) / (float blockSize)))
 
         xCeiling < 0 || yCeiling < 0 || xFloor < 0 || yFloor < 0
         || yCeiling >= environment.Length || xCeiling >= environment.[yCeiling].Length 
@@ -46,10 +46,10 @@ type Game1() as thisPacMan =
         || environment.[yCeiling].[xFloor] = wallCode
     
     let moveSomeone positionBefore direction =
-        let goLeft = {positionBefore with X = positionBefore.X-playerSpeed; DirectionType=Direction.Left}
-        let goRight = {positionBefore with X = positionBefore.X+playerSpeed; DirectionType=Direction.Right}
-        let goUp = {positionBefore with Y = positionBefore.Y-playerSpeed; DirectionType=Direction.Up}
-        let goDown = {positionBefore with Y = positionBefore.Y+playerSpeed; DirectionType=Direction.Down}
+        let goLeft = {positionBefore with X = positionBefore.X-speed; DirectionType=Direction.Left}
+        let goRight = {positionBefore with X = positionBefore.X+speed; DirectionType=Direction.Right}
+        let goUp = {positionBefore with Y = positionBefore.Y-speed; DirectionType=Direction.Up}
+        let goDown = {positionBefore with Y = positionBefore.Y+speed; DirectionType=Direction.Down}
 
         match direction with
             | Direction.Left when not (isWall (goLeft)) -> goLeft
@@ -57,6 +57,7 @@ type Game1() as thisPacMan =
             | Direction.Up when not (isWall (goUp)) -> goUp
             | Direction.Down when not (isWall (goDown)) -> goDown
             | _ -> { positionBefore with DirectionType=Direction.None }
+
     let movePlayer () =
         let keyboardState = Keyboard.GetState()
 
@@ -117,30 +118,30 @@ type Game1() as thisPacMan =
                     match mazeMatrix.[index_y].[index_x] with
                     | code when code = wallCode -> spriteBatch.Draw(
                             whiteTexture,
-                            Rectangle(index_x * speed, index_y * speed, speed, speed),
+                            Rectangle(index_x * blockSize, index_y * blockSize, blockSize, blockSize),
                             Color.Black
                         )
                     | _ -> spriteBatch.Draw(
                             whiteTexture,
-                            Rectangle(index_x * speed, index_y * speed, speed, speed),
+                            Rectangle(index_x * blockSize, index_y * blockSize, blockSize, blockSize),
                             Color.Gray
                         )
 
         spriteBatch.Draw(
             whiteTexture,
-            Rectangle(playerPos.X, playerPos.Y, speed, speed),
+            Rectangle(playerPos.X, playerPos.Y, blockSize, blockSize),
             Color.Yellow
         )
 
         spriteBatch.Draw(
             whiteTexture,
-            Rectangle(npc1Pos.X, npc1Pos.Y, speed, speed),
+            Rectangle(npc1Pos.X, npc1Pos.Y, blockSize, blockSize),
             Color.Red
         )
 
         spriteBatch.Draw(
             whiteTexture,
-            Rectangle(npc2Pos.X, npc2Pos.Y, speed, speed),
+            Rectangle(npc2Pos.X, npc2Pos.Y, blockSize, blockSize),
             Color.Bisque
         )
 
