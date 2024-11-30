@@ -26,6 +26,7 @@ type Game1() as thisPacMan =
     let mutable npc1Pos = {X = 200; Y = 120; DirectionType = Direction.None}
     let mutable npc2Pos = {X = 200; Y = 200; DirectionType = Direction.None}
     let mutable score = 0
+    let mutable lifes = 1
 
     let environment = mazeMatrix
     let wallCode = Maze.WALL
@@ -59,42 +60,50 @@ type Game1() as thisPacMan =
             | Direction.Down when not (isWall (goDown)) -> goDown
             | _ -> { positionBefore with DirectionType=Direction.None }
     
-    let eatApple (playerNewPos) =
-        let xCeiling = int (Math.Ceiling((float playerNewPos.X) / (float blockSize)))
-        let yCeiling = int (Math.Ceiling((float playerNewPos.Y) / (float blockSize)))
-        let xFloor = int (Math.Floor((float playerNewPos.X) / (float blockSize)))
-        let yFloor = int (Math.Floor((float playerNewPos.Y) / (float blockSize)))
+    let eatSomething position whatToEat =
+        let xCeiling = int (Math.Ceiling((float position.X) / (float blockSize)))
+        let yCeiling = int (Math.Ceiling((float position.Y) / (float blockSize)))
+        let xFloor = int (Math.Floor((float position.X) / (float blockSize)))
+        let yFloor = int (Math.Floor((float position.Y) / (float blockSize)))
 
-        score <- score +
-            match environment with
-                | point when environment[yCeiling][xCeiling] = Maze.APPL -> 
-                    environment[yCeiling][xCeiling] <- Maze.EMPT
-                    Maze.APPL
-                | point when environment[yCeiling][xFloor] = Maze.APPL -> 
-                    environment[yCeiling][xFloor] <- Maze.EMPT
-                    Maze.APPL
-                | point when environment[yFloor][xFloor] = Maze.APPL -> 
-                    environment[yFloor][xFloor] <- Maze.EMPT
-                    Maze.APPL
-                | point when environment[yFloor][xCeiling] = Maze.APPL -> 
-                    environment[yFloor][xCeiling] <- Maze.EMPT
-                    Maze.APPL
-                | _ -> Maze.EMPT
+        match environment with
+            | point when environment[yCeiling][xCeiling] = whatToEat -> 
+                environment[yCeiling][xCeiling] <- Maze.EMPT
+                whatToEat
+            | point when environment[yCeiling][xFloor] = whatToEat -> 
+                environment[yCeiling][xFloor] <- Maze.EMPT
+                whatToEat
+            | point when environment[yFloor][xFloor] = whatToEat -> 
+                environment[yFloor][xFloor] <- Maze.EMPT
+                whatToEat
+            | point when environment[yFloor][xCeiling] = whatToEat -> 
+                environment[yFloor][xCeiling] <- Maze.EMPT
+                whatToEat
+            | _ -> Maze.EMPT
+    
+    let resetPlayerToMatrix whatToSet =
+        let xCeiling = int (Math.Ceiling((float playerPos.X) / (float blockSize)))
+        let yCeiling = int (Math.Ceiling((float playerPos.Y) / (float blockSize)))
+        let xFloor = int (Math.Floor((float playerPos.X) / (float blockSize)))
+        let yFloor = int (Math.Floor((float playerPos.Y) / (float blockSize)))
+
+        environment[yCeiling][xCeiling] <- whatToSet
+        environment[yCeiling][xFloor] <- whatToSet
+        environment[yFloor][xFloor] <- whatToSet
+        environment[yFloor][xCeiling] <- whatToSet
 
     let movePlayer () =
         let keyboardState = Keyboard.GetState()
 
-        playerPos <-
-            match keyboardState.GetPressedKeys() with
-              | [||] -> playerPos
-              | pressedKeys ->
-                  eatApple playerPos
-                  match Array.head pressedKeys with
-                  | Keys.Left -> moveSomeone playerPos Direction.Left
-                  | Keys.Right -> moveSomeone playerPos Direction.Right
-                  | Keys.Up -> moveSomeone playerPos Direction.Up
-                  | Keys.Down -> moveSomeone playerPos Direction.Down
-                  | _ -> playerPos
+        match keyboardState.GetPressedKeys() with
+          | [||] -> playerPos
+          | pressedKeys ->
+              match Array.head pressedKeys with
+              | Keys.Left -> moveSomeone playerPos Direction.Left
+              | Keys.Right -> moveSomeone playerPos Direction.Right
+              | Keys.Up -> moveSomeone playerPos Direction.Up
+              | Keys.Down -> moveSomeone playerPos Direction.Down
+              | _ -> playerPos
 
     let moveNPC (npcPosition) =
         let rand = Random()
@@ -125,9 +134,14 @@ type Game1() as thisPacMan =
         ()
 
     override thisPacMan.Update(gameTime) =
-        movePlayer ()
         npc1Pos <- moveNPC npc1Pos
         npc2Pos <- moveNPC npc2Pos
+        resetPlayerToMatrix Maze.EMPT
+        playerPos <- movePlayer ()
+        resetPlayerToMatrix Maze.PLAYER
+        score <- score + eatSomething playerPos Maze.APPL
+        lifes <- lifes - eatSomething npc1Pos Maze.PLAYER
+        lifes <- lifes - eatSomething npc2Pos Maze.PLAYER
 
         base.Update(gameTime)
 
@@ -159,7 +173,9 @@ type Game1() as thisPacMan =
         spriteBatch.Draw(
             whiteTexture,
             Rectangle(playerPos.X, playerPos.Y, blockSize, blockSize),
-            Color.Yellow
+            match lifes with
+            | 1 -> Color.Yellow
+            | _ -> Color.Black
         )
 
         spriteBatch.Draw(

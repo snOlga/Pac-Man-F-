@@ -6,6 +6,7 @@ open Microsoft.Xna.Framework.Graphics
 let WALL = -1
 let EMPT = 0
 let APPL = 1
+let PLAYER = 2
 let mazeMatrix =
     [| [| APPL; APPL; APPL; WALL; APPL; APPL; APPL; APPL; APPL; APPL; APPL; APPL; APPL; APPL; APPL; APPL; APPL; WALL; APPL; APPL; APPL|] 
        [| APPL; WALL; APPL; WALL; APPL; WALL; WALL; WALL; WALL; WALL; APPL; WALL; WALL; WALL; WALL; WALL; APPL; WALL; APPL; WALL; APPL|] 
