@@ -6,7 +6,14 @@ open Microsoft.Xna.Framework.Input
 open System
 open Maze
 
-type MovementVector = { X:int; Y:int }
+type Direction =
+    | Left
+    | Right
+    | Up
+    | Down
+    | None
+
+type MovementVector = { X:int; Y:int; DirectionType:Direction }
 
 type Game1() as thisPacMan =
     inherit Game()
@@ -15,9 +22,9 @@ type Game1() as thisPacMan =
     let graphics = new GraphicsDeviceManager(thisPacMan)
     let mutable spriteBatch = Unchecked.defaultof<SpriteBatch>
     let mutable whiteTexture = Unchecked.defaultof<Texture2D>
-    let mutable rect1Position = {X = 0; Y = 0}
-    let mutable rect2Position = Vector2(100.0f, 200.0f)
-    let mutable rect3Position = Vector2(100.0f, 100.0f)
+    let mutable playerPos = {X = 0; Y = 0; DirectionType = Direction.None}
+    let mutable npc1Pos = {X = 200; Y = 120; DirectionType = Direction.None}
+    let mutable npc2Pos = {X = 200; Y = 200; DirectionType = Direction.None}
 
     let environment = mazeMatrix
     let wallCode = Maze.WALL
@@ -37,31 +44,49 @@ type Game1() as thisPacMan =
         || environment.[yFloor].[xFloor] = wallCode
         || environment.[yFloor].[xCeiling] = wallCode
         || environment.[yCeiling].[xFloor] = wallCode
+    
+    let moveSomeone positionBefore direction =
+        let goLeft = {positionBefore with X = positionBefore.X-playerSpeed; DirectionType=Direction.Left}
+        let goRight = {positionBefore with X = positionBefore.X+playerSpeed; DirectionType=Direction.Right}
+        let goUp = {positionBefore with Y = positionBefore.Y-playerSpeed; DirectionType=Direction.Up}
+        let goDown = {positionBefore with Y = positionBefore.Y+playerSpeed; DirectionType=Direction.Down}
 
+        match direction with
+            | Direction.Left when not (isWall (goLeft)) -> goLeft
+            | Direction.Right when not (isWall (goRight)) -> goRight
+            | Direction.Up when not (isWall (goUp)) -> goUp
+            | Direction.Down when not (isWall (goDown)) -> goDown
+            | _ -> { positionBefore with DirectionType=Direction.None }
     let movePlayer () =
         let keyboardState = Keyboard.GetState()
 
-        let goLeft = {rect1Position with X = rect1Position.X-playerSpeed}
-        let goRight = {rect1Position with X = rect1Position.X+playerSpeed}
-        let goUp = {rect1Position with Y = rect1Position.Y-playerSpeed}
-        let goDown = {rect1Position with Y = rect1Position.Y+playerSpeed}
-
-        rect1Position <-
+        playerPos <-
             match keyboardState.GetPressedKeys() with
-              | [||] -> rect1Position
+              | [||] -> playerPos
               | pressedKeys ->
                   match Array.head pressedKeys with
-                  | Keys.Left when not (isWall (goLeft)) -> goLeft
-                  | Keys.Right when not (isWall (goRight)) -> goRight
-                  | Keys.Up when not (isWall (goUp)) -> goUp
-                  | Keys.Down when not (isWall (goDown)) -> goDown
-                  | _ -> rect1Position
+                  | Keys.Left -> moveSomeone playerPos Direction.Left
+                  | Keys.Right -> moveSomeone playerPos Direction.Right
+                  | Keys.Up -> moveSomeone playerPos Direction.Up
+                  | Keys.Down -> moveSomeone playerPos Direction.Down
+                  | _ -> playerPos
 
     let moveNPC (npcPosition) =
         let rand = Random()
+        let moveDirect = rand.Next(4)
 
-        npcPosition
-        + Vector2((float32) (rand.Next(-1, 2)), (float32) (rand.Next(-1, 2)))
+        match npcPosition.DirectionType with
+          | Direction.Left -> moveSomeone npcPosition Direction.Left
+          | Direction.Right -> moveSomeone npcPosition Direction.Right
+          | Direction.Up -> moveSomeone npcPosition Direction.Up
+          | Direction.Down -> moveSomeone npcPosition Direction.Down
+          | _ -> { npcPosition with DirectionType = 
+                                    match moveDirect with 
+                                    | 0 -> Direction.Left 
+                                    | 1 -> Direction.Right 
+                                    | 2 -> Direction.Up 
+                                    | 3 -> Direction.Down
+                                    | _ -> Direction.None }
 
     override thisPacMan.Initialize() =
         whiteTexture <- new Texture2D(thisPacMan.GraphicsDevice, 1, 1)
@@ -76,8 +101,8 @@ type Game1() as thisPacMan =
 
     override thisPacMan.Update(gameTime) =
         movePlayer ()
-        rect2Position <- (moveNPC rect2Position)
-        rect3Position <- moveNPC rect3Position
+        npc1Pos <- moveNPC npc1Pos
+        npc2Pos <- moveNPC npc2Pos
 
         base.Update(gameTime)
 
@@ -103,8 +128,20 @@ type Game1() as thisPacMan =
 
         spriteBatch.Draw(
             whiteTexture,
-            Rectangle(rect1Position.X, rect1Position.Y, speed, speed),
+            Rectangle(playerPos.X, playerPos.Y, speed, speed),
             Color.Yellow
+        )
+
+        spriteBatch.Draw(
+            whiteTexture,
+            Rectangle(npc1Pos.X, npc1Pos.Y, speed, speed),
+            Color.Red
+        )
+
+        spriteBatch.Draw(
+            whiteTexture,
+            Rectangle(npc2Pos.X, npc2Pos.Y, speed, speed),
+            Color.Bisque
         )
 
         spriteBatch.End()
